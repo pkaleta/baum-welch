@@ -32,6 +32,7 @@ def gen_seq():
             else:
                 seq.append('R')
 
+    seq.append('E')
     return seq
 
 
