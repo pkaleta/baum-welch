@@ -17,7 +17,6 @@ def forward(hmm_params, X, Y, Yt):
     n = len(Yt)
     m = len(X)
     alpha = np.zeros((n, m))
-    #print '!!!!', pi, B
 
     for t in xrange(n):
         for i in xrange(m):
@@ -27,7 +26,6 @@ def forward(hmm_params, X, Y, Yt):
                 tmp = 0.0
                 for j in xrange(m):
                     tmp += alpha[t - 1, j] * A[j, i]
-                #print '******', t, i, B[i, Yt[t]] * tmp
                 alpha[t, i] = B[i, Yt[t]] * tmp
 
     return alpha
@@ -64,13 +62,9 @@ def baum_welch(hmm_params, X, Y, obs, iterations=1):
             n = len(Yt)
             m = len(X)
             Yt = [Y.index(yt) for yt in Yt]
-            #print '####', Yt
 
             alpha = forward(hmm_params, X, Y, Yt)
             beta = backward(hmm_params, X, Y, Yt)
-
-            # print 'alpha', alpha
-            # print 'beta', beta
 
             gamma = np.zeros((n, m))
             gamma_sums = np.zeros(n)
@@ -81,8 +75,6 @@ def baum_welch(hmm_params, X, Y, obs, iterations=1):
 
                 gamma[t] /= gamma_sums[t]
 
-            #print 'gamma', gamma
-
             xsi = np.zeros((n, m, m))
             for t in xrange(n - 1):
                 for i in xrange(m):
@@ -92,12 +84,8 @@ def baum_welch(hmm_params, X, Y, obs, iterations=1):
                              beta[t + 1, j] * B[j, Yt[t + 1]])
                         )
                         xsi[t, i, j] /= gamma_sums[t]  # nopep8
-            #print 'xsi', xsi
-
             # Update
             pi = gamma[0]
-
-            #print 'gamma', gamma
 
             A = np.zeros((m, m))
             for i in xrange(m):
@@ -113,8 +101,6 @@ def baum_welch(hmm_params, X, Y, obs, iterations=1):
                     else:
                         A[i, j] = num / den
 
-            #print A
-
             B = np.zeros((m, len(Y)))
             for i in xrange(len(Y)):
                 for j in xrange(m):
@@ -122,12 +108,10 @@ def baum_welch(hmm_params, X, Y, obs, iterations=1):
                     gamma_sum = 0.0
                     for t in xrange(n):
                         gamma_sum += gamma[t, j]
-                        #print '*****', Yt[t], i
                         if Yt[t] == i:
                             tmp += gamma[t, j]
                     B[j, i] = tmp / gamma_sum
 
-            #print 'B:', B
             hmm_params = HMMParams(A, B, pi)
 
     return hmm_params
