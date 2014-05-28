@@ -1,4 +1,6 @@
 from collections import namedtuple
+import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 
 from gen import gen_seq
@@ -135,11 +137,12 @@ def forward_backward(hmm_params, X, Y, sequence):
     n = len(sequence)
     m = len(X)
     seq_indices = [Y.index(yt) for yt in sequence]
-    alpha = forward(hmm_params, X, Y, [seq_indices])
-    beta = backward(hmm_params, X, Y, [seq_indices])
-    prob = []
+    alpha = forward(hmm_params, X, Y, seq_indices)
+    beta = backward(hmm_params, X, Y, seq_indices)
+    prob = np.zeros((n, m))
     for t in xrange(n):
-        prob.append(np.dot(alpha[t, 1:m], beta[t, 1:m]))
+        for i in xrange(m):
+            prob[t, i] = alpha[t, i] * beta[t, i]
     return prob
 
 # A = np.matrix([[0.5, 0.5], [0.3, 0.7]])
@@ -176,4 +179,10 @@ hmm_params = baum_welch(
     hidden_states,
     symbols,
     sequences)
-#prob = forward_backward(hmm_params, hidden_states, symbols, gen_seq())
+seq = gen_seq()
+prob = forward_backward(hmm_params, hidden_states, symbols, seq)
+
+matplotlib.rc('xtick', labelsize=5)
+plt.xticks(range(0, len(seq)), seq)
+plt.plot(prob[0:len(seq), 1:3])
+plt.show()
