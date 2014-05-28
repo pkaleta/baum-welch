@@ -1,14 +1,17 @@
-import numpy as np
 from collections import namedtuple
+import numpy as np
+
+from gen import gen_seq
 
 
-Params = namedtuple(
+HMMParams = namedtuple(
     'Params',
     ['transition_prob', 'emission_prob', 'initial_prob']
 )
 
 
-def forward(A, B, pi, X, Y, Yt):
+def forward(hmm_params, X, Y, Yt):
+    A, B, pi = hmm_params
     n = len(Yt)
     m = len(X)
     alpha = np.zeros((n, m))
@@ -28,7 +31,8 @@ def forward(A, B, pi, X, Y, Yt):
     return alpha
 
 
-def backward(A, B, pi, X, Y, Yt):
+def backward(hmm_params, X, Y, Yt):
+    A, B, pi = hmm_params
     n = len(Yt)
     m = len(X)
     beta = np.zeros((n, m))
@@ -44,9 +48,14 @@ def backward(A, B, pi, X, Y, Yt):
     return beta
 
 
-def baum_welch(A, B, pi, X, Y, obs):
+def baum_welch(hmm_params, X, Y, obs, iterations=1):
+    A, B, pi = hmm_params
+
+    # TODO: change this so that it checks the difference between
+    # current and previous run rather than running for a fixed number
+    # of iterations.
     iteration = 0
-    while iteration < 100:
+    while iteration < iterations:
         iteration += 1
 
         for Yt in obs:
@@ -55,8 +64,8 @@ def baum_welch(A, B, pi, X, Y, obs):
             Yt = [Y.index(yt) for yt in Yt]
             #print '####', Yt
 
-            alpha = forward(A, B, pi, X, Y, Yt)
-            beta = backward(A, B, pi, X, Y, Yt)
+            alpha = forward(hmm_params, X, Y, Yt)
+            beta = backward(hmm_params, X, Y, Yt)
 
             # print 'alpha', alpha
             # print 'beta', beta
@@ -117,9 +126,21 @@ def baum_welch(A, B, pi, X, Y, obs):
                     B[j, i] = tmp / gamma_sum
 
             #print 'B:', B
+            hmm_params = HMMParams(A, B, pi)
 
-    return Params(A, B, pi)
+    return hmm_params
 
+
+def forward_backward(hmm_params, X, Y, sequence):
+    n = len(sequence)
+    m = len(X)
+    seq_indices = [Y.index(yt) for yt in sequence]
+    alpha = forward(hmm_params, X, Y, [seq_indices])
+    beta = backward(hmm_params, X, Y, [seq_indices])
+    prob = []
+    for t in xrange(n):
+        prob.append(np.dot(alpha[t, 1:m], beta[t, 1:m]))
+    return prob
 
 # A = np.matrix([[0.5, 0.5], [0.3, 0.7]])
 # B = np.matrix([[0.3, 0.7], [0.8, 0.2]])
@@ -146,10 +167,13 @@ with open('seq.txt') as fp:
 hidden_states = ['start', 'before', 'after', 'end']
 symbols = ['S', 'L', 'R', 'E']
 
-print baum_welch(
-    transition_prob,
-    emission_prob,
-    initial_prob,
+hmm_params = baum_welch(
+    HMMParams(
+        transition_prob=transition_prob,
+        emission_prob=emission_prob,
+        initial_prob=initial_prob,
+    ),
     hidden_states,
     symbols,
     sequences)
+#prob = forward_backward(hmm_params, hidden_states, symbols, gen_seq())
