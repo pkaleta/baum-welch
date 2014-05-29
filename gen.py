@@ -1,4 +1,5 @@
 import random
+import numpy as np
 
 N_SEQ = 100
 
@@ -18,19 +19,25 @@ def gen_seq():
             state = BEFORE
             seq.append('S')
         if state == BEFORE:
-            if random.randint(0, 100) == 0:
-                state = AFTER
-            if random.randint(0, 100) in range(0, 5):
-                seq.append('R')
-            else:
+            n, l, r = np.random.multinomial(1, [0.96, 0.036, 0.004])
+            if n:
+                seq.append('N')
+            elif l:
                 seq.append('L')
+            else:
+                seq.append('R')
+
+            state += np.random.binomial(1, 1/5000.)
         if state == AFTER:
-            if random.randint(0, 100) == 0:
-                state = END
-            if random.randint(0, 100) in range(0, 5):
+            n, l, r = np.random.multinomial(1, [0.96, 0.004, 0.036])
+            if n:
+                seq.append('N')
+            elif l:
                 seq.append('L')
             else:
                 seq.append('R')
+
+            state += np.random.binomial(1, 1/5000.)
 
     seq.append('E')
     return seq
