@@ -213,14 +213,16 @@ if __name__ == '__main__':
             plt.figure(1)
 
             # First subplot
-            plt.subplot(211)
+            ax1 = plt.subplot(211)
             plt.xticks(range(0, n - 1), seq)
-            plt.plot(1.0 - abs(prob[1:, 1] - prob[: -1, 2]))
+            p1 = plt.plot(1.0 - abs(prob[1:, 1] - prob[: -1, 2]))
+            ax1.set_title('Breakpoint probability.')
 
             # Second subplot
-            plt.subplot(212)
+            ax2 = plt.subplot(212)
             plt.xticks(range(0, n - 1), seq)
-            plt.plot(prob[0: n - 1, 1: 3])
+            p2 = plt.plot(prob[0: n - 1, 1: 3])
+            ax2.set_title('Left and right transposon probabilities')
 
             plt.savefig('plots/%d.svg' % i)
             plt.close()
