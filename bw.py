@@ -163,5 +163,5 @@ if __name__ == '__main__':
         matplotlib.rc('xtick', labelsize=5)
         plt.xticks(range(0, n - 1), seq)
         plt.plot(np.asarray(prob)[0: n - 1, 1: 3])
-        plt.savefig('plots/%d.svg' % i)
+        plt.savefig('plots/%d.jpg' % i)
         plt.close()
