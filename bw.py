@@ -8,6 +8,28 @@ from mpmath import mpf
 HMM_PARAM_NAMES = ['transition_prob', 'emission_prob', 'initial_prob']
 HMMParams = namedtuple('Params', HMM_PARAM_NAMES)
 
+INITIAL_TRANSITION_PROB = np.matrix([
+    map(mpf, [0.0, 1.0, 0.0, 0.0]),
+    map(mpf, [0.0, 1 - 0.0002, 0.0002, 0.0]),
+    map(mpf, [0.0, 0.0, 1 - 0.0002, 0.0002]),
+    map(mpf, [0.0, 0.0, 0.0, 0.0]),
+], dtype=mpf)
+
+INITIAL_EMISSION_PROB = np.matrix([
+    map(mpf, [1.0, 0.0, 0.0, 0.0, 0.0]),
+    map(mpf, [0.0, 0.96, 0.036, 0.004, 0.0]),
+    map(mpf, [0.0, 0.96, 0.004, 0.036, 0.0]),
+    map(mpf, [0.0, 0.0, 0.0, 0.0, 1.0]),
+], dtype=mpf)
+
+INITIAL_PROB = np.matrix(
+    map(mpf, [1.0, 0.0, 0.0, 0.0]),
+    dtype=mpf,
+)
+
+HIDDEN_STATES = ['S0', 'S1', 'S2', 'S3']
+SYMBOLS = ['S', 'N', 'L', 'R', 'E']
+
 
 def forward(hmm, X, Y, Yt):
     n = len(Yt)
@@ -109,61 +131,36 @@ def forward_backward(hmm_params, X, Y, sequence):
 
     return alpha, beta, gamma
 
-# A = np.matrix([[0.5, 0.5], [0.3, 0.7]])
-# B = np.matrix([[0.3, 0.7], [0.8, 0.2]])
-# pi = np.array([0.2, 0.8])
 
-#if __name__ == '__main__':
-transition_prob = np.matrix([
-    map(mpf, [0.0, 1.0, 0.0, 0.0]),
-    map(mpf, [0.0, 1 - 0.0002, 0.0002, 0.0]),
-    map(mpf, [0.0, 0.0, 1 - 0.0002, 0.0002]),
-    map(mpf, [0.0, 0.0, 0.0, 0.0]),
-], dtype=mpf)
+if __name__ == '__main__':
+    with open('seq.txt') as fp:
+        sequences = [line.strip() for line in fp.readlines()]
 
-emission_prob = np.matrix([
-    map(mpf, [1.0, 0.0, 0.0, 0.0, 0.0]),
-    map(mpf, [0.0, 0.96, 0.036, 0.004, 0.0]),
-    map(mpf, [0.0, 0.96, 0.004, 0.036, 0.0]),
-    map(mpf, [0.0, 0.0, 0.0, 0.0, 1.0]),
-], dtype=mpf)
+    for i, seq in enumerate(sequences[:1]):
+        print 'Calculating params for sequence %d...' % i
+        n = len(seq)
 
-initial_prob = np.matrix(
-    map(mpf, [1.0, 0.0, 0.0, 0.0]),
-    dtype=mpf,
-)
+        hmm_params = baum_welch(
+            HMMParams(
+                transition_prob=INITIAL_TRANSITION_PROB,
+                emission_prob=INITIAL_EMISSION_PROB,
+                initial_prob=INITIAL_PROB,
+            ),
+            HIDDEN_STATES,
+            SYMBOLS,
+            seq)
+        _, _, prob = forward_backward(hmm_params, HIDDEN_STATES, SYMBOLS, seq)
 
-HIDDEN_STATES = ['S0', 'S1', 'S2', 'S3']
-SYMBOLS = ['S', 'N', 'L', 'R', 'E']
+        for param in HMM_PARAM_NAMES:
+            param_values = getattr(hmm_params, param)
+            np.savetxt(
+                'params/%s.%d.csv' % (param, i),
+                param_values,
+                delimiter=','
+            )
 
-with open('seq.txt') as fp:
-    sequences = [line.strip() for line in fp.readlines()]
-
-for i, seq in enumerate(sequences[:1]):
-    print 'Calculating params for sequence %d...' % i
-    n = len(seq)
-
-    hmm_params = baum_welch(
-        HMMParams(
-            transition_prob=transition_prob,
-            emission_prob=emission_prob,
-            initial_prob=initial_prob,
-        ),
-        HIDDEN_STATES,
-        SYMBOLS,
-        seq)
-    _, _, prob = forward_backward(hmm_params, HIDDEN_STATES, SYMBOLS, seq)
-
-    for param in HMM_PARAM_NAMES:
-        param_values = getattr(hmm_params, param)
-        np.savetxt(
-            'params/%s.%d.csv' % (param, i),
-            param_values,
-            delimiter=','
-        )
-
-    matplotlib.rc('xtick', labelsize=5)
-    plt.xticks(range(0, n - 1), seq)
-    plt.plot(np.asarray(prob)[0: n - 1, 1: 3])
-    plt.savefig('plots/%d.svg' % i)
-    plt.close()
+        matplotlib.rc('xtick', labelsize=5)
+        plt.xticks(range(0, n - 1), seq)
+        plt.plot(np.asarray(prob)[0: n - 1, 1: 3])
+        plt.savefig('plots/%d.svg' % i)
+        plt.close()
