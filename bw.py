@@ -51,7 +51,11 @@ def backward(hmm, X, Y, Yt):
     return np.asmatrix(beta)
 
 
-def baum_welch(hmm, X, Y, Yt, iterations=1):
+def baum_welch(hmm, X, Y, sequence, iterations=1):
+    n = len(sequence)
+    m = len(X)
+    Yt = [Y.index(yt) for yt in sequence]
+
     # TODO: change this so that it checks the difference between
     # current and previous run rather than running for a fixed number
     # of iterations.
@@ -59,21 +63,10 @@ def baum_welch(hmm, X, Y, Yt, iterations=1):
     while iteration < iterations:
         iteration += 1
 
-        n = len(Yt)
-        m = len(X)
-        Yt = [Y.index(yt) for yt in Yt]
-
-        alpha = forward(hmm, X, Y, Yt)
-        beta = backward(hmm, X, Y, Yt)
-
-        gamma = np.asmatrix(np.zeros((n, m), dtype=mpf))
-        for t in xrange(n):
-            gamma[t, :] = [alpha[t, i] * beta[t, i] for i in xrange(m)]
-            gamma[t, :] /= np.sum(gamma[t, :])
+        alpha, beta, gamma = forward_backward(hmm, X, Y, sequence)
 
         xsi = np.zeros((n, m, m), dtype=mpf)
         for t in xrange(n - 1):
-            den = mpf(0.0)
             for i in xrange(m):
                 for j in xrange(m):
                     xsi[t, i, j] = (
@@ -105,16 +98,18 @@ def baum_welch(hmm, X, Y, Yt, iterations=1):
 
 
 def forward_backward(hmm_params, X, Y, sequence):
+    Yt = [Y.index(yt) for yt in sequence]
     n = len(sequence)
     m = len(X)
-    seq_indices = [Y.index(yt) for yt in sequence]
-    alpha = forward(hmm_params, X, Y, seq_indices)
-    beta = backward(hmm_params, X, Y, seq_indices)
-    prob = np.zeros((n, m), dtype=mpf)
+
+    alpha = forward(hmm_params, X, Y, Yt)
+    beta = backward(hmm_params, X, Y, Yt)
+    gamma = np.asmatrix(np.zeros((n, m), dtype=mpf))
     for t in xrange(n):
-        for i in xrange(m):
-            prob[t, i] = alpha[t, i] * beta[t, i]
-    return prob
+        gamma[t, :] = [alpha[t, i] * beta[t, i] for i in xrange(m)]
+        gamma[t, :] /= np.sum(gamma[t, :])
+
+    return alpha, beta, gamma
 
 # A = np.matrix([[0.5, 0.5], [0.3, 0.7]])
 # B = np.matrix([[0.3, 0.7], [0.8, 0.2]])
@@ -143,11 +138,13 @@ initial_prob = np.matrix(
 HIDDEN_STATES = ['S0', 'S1', 'S2', 'S3']
 SYMBOLS = ['S', 'N', 'L', 'R', 'E']
 
-with open('seq2.txt') as fp:
+with open('seq.txt') as fp:
     sequences = [line.strip() for line in fp.readlines()]
 
 for i, seq in enumerate(sequences[:1]):
-    #print 'Sekwencja %d: %s' % (i, seq)
+    n = len(seq)
+    print 'Sekwencja %d: %s (%d)' % (i, seq, n)
+
     hmm_params = baum_welch(
         HMMParams(
             transition_prob=transition_prob,
@@ -158,10 +155,10 @@ for i, seq in enumerate(sequences[:1]):
         SYMBOLS,
         seq)
     print hmm_params
-    prob = forward_backward(hmm_params, HIDDEN_STATES, SYMBOLS, seq)
+    _, _, prob = forward_backward(hmm_params, HIDDEN_STATES, SYMBOLS, seq)
     print prob
 
     matplotlib.rc('xtick', labelsize=5)
-    plt.xticks(range(0, len(seq)), seq)
-    plt.plot(prob[0:len(seq), 1:3])
+    plt.xticks(range(0, n - 1), seq)
+    plt.plot(np.asarray(prob)[0: n - 1, 1: 3])
     plt.show()
