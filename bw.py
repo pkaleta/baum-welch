@@ -9,21 +9,21 @@ import sys
 HMM_PARAM_NAMES = ['transition_prob', 'emission_prob', 'initial_prob']
 HMMParams = namedtuple('Params', HMM_PARAM_NAMES)
 
-INITIAL_TRANSITION_PROB = np.matrix([
+INITIAL_TRANSITION_PROB = np.array([
     map(mpf, [0.0, 1.0, 0.0, 0.0]),
     map(mpf, [0.0, 1 - 0.0002, 0.0002, 0.0]),
     map(mpf, [0.0, 0.0, 1 - 0.0002, 0.0002]),
     map(mpf, [0.0, 0.0, 0.0, 0.0]),
 ], dtype=mpf)
 
-INITIAL_EMISSION_PROB = np.matrix([
+INITIAL_EMISSION_PROB = np.array([
     map(mpf, [1.0, 0.0, 0.0, 0.0, 0.0]),
     map(mpf, [0.0, 0.96, 0.036, 0.004, 0.0]),
     map(mpf, [0.0, 0.96, 0.004, 0.036, 0.0]),
     map(mpf, [0.0, 0.0, 0.0, 0.0, 1.0]),
 ], dtype=mpf)
 
-INITIAL_PROB = np.matrix(
+INITIAL_PROB = np.array(
     map(mpf, [1.0, 0.0, 0.0, 0.0]),
     dtype=mpf,
 )
@@ -35,41 +35,38 @@ SYMBOLS = ['S', 'N', 'L', 'R', 'E']
 def forward(hmm, X, Y, Yt):
     n = len(Yt)
     m = len(X)
-    alpha = np.asmatrix(np.zeros((n, m), dtype=mpf))
+    alpha = np.zeros((n, m), dtype=mpf)
 
     alpha[0, :] = (
-        hmm.initial_prob *
-        np.diag(hmm.emission_prob[:, Yt[0]].A1)
+        hmm.initial_prob
+        .dot(np.diag(hmm.emission_prob[:, Yt[0]]))
     )
-    #alpha[0, :] /= np.sum(alpha[0, :])
 
     for t in xrange(1, n):
         alpha[t, :] = (
-            alpha[t - 1, :] *
-            hmm.transition_prob *
-            np.asmatrix(np.diag(hmm.emission_prob[:, Yt[t]].A1))
+            alpha[t - 1, :]
+            .dot(hmm.transition_prob)
+            .dot(np.asmatrix(np.diag(hmm.emission_prob[:, Yt[t]])))
         )
-        #alpha[t, :] /= np.sum(alpha[t, :])
 
-    return np.asmatrix(alpha)
+    return alpha
 
 
 def backward(hmm, X, Y, Yt):
     n = len(Yt)
     m = len(X)
-    beta = np.asmatrix(np.zeros((n, m), dtype=mpf))
+    beta = np.zeros((n, m), dtype=mpf)
 
     beta[n - 1, :] = [mpf(1.0)] * m
 
     for t in xrange(n - 2, -1, -1):
         beta[t, :] = (
-            hmm.transition_prob *
-            np.asmatrix(np.diag(hmm.emission_prob[:, Yt[t + 1]].A1)) *
-            beta[t + 1, :].T
-        ).T
-        #beta[t, :] /= np.sum(beta[t, :])
+            hmm.transition_prob
+            .dot(np.asmatrix(np.diag(hmm.emission_prob[:, Yt[t + 1]])))
+            .dot(beta[t + 1, :].T)
+        )
 
-    return np.asmatrix(beta)
+    return beta
 
 
 def baum_welch(hmm, X, Y, sequence, iterations=1):
@@ -101,13 +98,13 @@ def baum_welch(hmm, X, Y, sequence, iterations=1):
         # Update
         pi = gamma[0]
 
-        transition_prob = np.asmatrix(np.zeros((m, m), dtype=mpf))
+        transition_prob = np.zeros((m, m), dtype=mpf)
         for i in xrange(m):
             den = np.sum(gamma[:, i])
             for j in xrange(m):
                 transition_prob[i, j] = np.sum(xsi[:, i, j]) / den
 
-        emission_prob = np.asmatrix(np.zeros((m, len(Y)), dtype=mpf))
+        emission_prob = np.zeros((m, len(Y)), dtype=mpf)
         for i in xrange(m):
             den = np.sum(gamma[:, i])
             for j in xrange(len(Y)):
@@ -125,7 +122,7 @@ def forward_backward(hmm_params, X, Y, sequence):
 
     alpha = forward(hmm_params, X, Y, Yt)
     beta = backward(hmm_params, X, Y, Yt)
-    gamma = np.asmatrix(np.zeros((n, m), dtype=mpf))
+    gamma = np.zeros((n, m), dtype=mpf)
     for t in xrange(n):
         gamma[t, :] = [alpha[t, i] * beta[t, i] for i in xrange(m)]
         gamma[t, :] /= np.sum(gamma[t, :])
@@ -135,33 +132,36 @@ def forward_backward(hmm_params, X, Y, sequence):
 
 if __name__ == '__main__':
     with open(sys.argv[1]) as fp:
-        sequences = [line.strip() for line in fp.readlines()]
+        for i, seq in enumerate(fp):
+            seq = seq.strip()
 
-    for i, seq in enumerate(sequences[:1]):
-        print 'Calculating params for sequence %d...' % i
-        n = len(seq)
+            print 'Calculating params for sequence %d...' % i
+            n = len(seq)
 
-        hmm_params = baum_welch(
-            HMMParams(
-                transition_prob=INITIAL_TRANSITION_PROB,
-                emission_prob=INITIAL_EMISSION_PROB,
-                initial_prob=INITIAL_PROB,
-            ),
-            HIDDEN_STATES,
-            SYMBOLS,
-            seq)
-        _, _, prob = forward_backward(hmm_params, HIDDEN_STATES, SYMBOLS, seq)
+            hmm_params = baum_welch(
+                HMMParams(
+                    transition_prob=INITIAL_TRANSITION_PROB,
+                    emission_prob=INITIAL_EMISSION_PROB,
+                    initial_prob=INITIAL_PROB,
+                ),
+                HIDDEN_STATES,
+                SYMBOLS,
+                seq)
+            _, _, prob = forward_backward(
+                hmm_params, HIDDEN_STATES, SYMBOLS, seq)
 
-        for param in HMM_PARAM_NAMES:
-            param_values = getattr(hmm_params, param)
-            np.savetxt(
-                'params/%s.%d.csv' % (param, i),
-                param_values,
-                delimiter=','
-            )
+            for param in HMM_PARAM_NAMES:
+                param_values = getattr(hmm_params, param)
+                np.savetxt(
+                    'params/%s.%d.csv' % (param, i),
+                    param_values,
+                    delimiter=','
+                )
 
-        matplotlib.rc('xtick', labelsize=5)
-        plt.xticks(range(0, n - 1), seq)
-        plt.plot(np.asarray(prob)[0: n - 1, 1: 3])
-        plt.savefig('plots/%d.jpg' % i)
-        plt.close()
+            matplotlib.rc('xtick', labelsize=5)
+            plt.xticks(range(0, n - 1), seq)
+            plt.plot(prob[0: n - 1, 1: 3])
+            plt.savefig('plots/%d.jpg' % i)
+            plt.close()
+
+            break
