@@ -69,18 +69,12 @@ def backward(hmm, X, Y, Yt):
     return beta
 
 
-def baum_welch(hmm, X, Y, sequence, iterations=1):
+def baum_welch(hmm, X, Y, sequence, eps=1e-6):
     n = len(sequence)
     m = len(X)
     Yt = [Y.index(yt) for yt in sequence]
 
-    # TODO: change this so that it checks the difference between
-    # current and previous run rather than running for a fixed number
-    # of iterations.
-    iteration = 0
-    while iteration < iterations:
-        iteration += 1
-
+    while True:
         alpha, beta, gamma = forward_backward(hmm, X, Y, sequence)
 
         xsi = np.zeros((n, m, m), dtype=mpf)
@@ -110,6 +104,10 @@ def baum_welch(hmm, X, Y, sequence, iterations=1):
             for j in xrange(len(Y)):
                 emission_prob[i, j] = np.sum(gamma[np.array(Yt) == j, i]) / den
 
+        diff_transition = np.max(hmm.transition_prob - transition_prob)
+        diff_emission = np.max(hmm.emission_prob - emission_prob)
+        if diff_transition < eps and diff_emission < eps:
+            break
         hmm = HMMParams(transition_prob, emission_prob, pi)
 
     return hmm
