@@ -70,6 +70,23 @@ def backward(hmm, X, Y, Yt):
 
 
 def baum_welch(hmm, X, Y, sequence, eps=1e-6):
+    """
+    Baum-welch implementation
+
+    Arguments:
+    ----------
+    hmm_params: HMMParams
+        Transition, emission and initial state probabilities for the
+        HMM model.
+    X: iterable
+        Collection of hidden states.
+    Y: iterable
+        Collection of observable states.
+    sequence: str
+        Observed sequence.
+
+    Returns HMMParams namedtuple containing HMM probabilities.
+    """
     n = len(sequence)
     m = len(X)
     Yt = [Y.index(yt) for yt in sequence]
@@ -114,6 +131,35 @@ def baum_welch(hmm, X, Y, sequence, eps=1e-6):
 
 
 def forward_backward(hmm_params, X, Y, sequence):
+    """
+    Forward-backward algorithm implementation.
+
+    Arguments:
+    ----------
+    hmm_params: HMMParams
+        Transition, emission and initial state probabilities for the
+        HMM model.
+    X: iterable
+        Collection of hidden states.
+    Y: iterable
+        Collection of observable states.
+    sequence: str
+        Observed sequence.
+
+    Returns:
+    --------
+    alpha: numpy.ndarray
+        Probability of seeing the y_1,y_2,...,y_t and being in state i
+        at time t. alpha_i(t)=P(Y_1=y_1,...,Y_t=y_t,X_t=i|hmm_params)
+    beta: numpy.ndarray
+        Probability of the ending partial sequence y_{t+1},...,y_{T}
+        given starting state i at time t.
+        beta_i(t)=P(Y_{t+1}=y_{t+1},...,Y_{T}=y_{T}|X_t=i, hmm_params)
+    gamma: numpy.ndarray
+        Probability of being in state i at time t given the observed
+        sequence Y and the parameters hmm_params:
+        gamma_i(t)=P(X_t=i|Y, hmm_params)
+    """
     Yt = [Y.index(yt) for yt in sequence]
     n = len(sequence)
     m = len(X)
@@ -129,6 +175,11 @@ def forward_backward(hmm_params, X, Y, sequence):
 
 
 if __name__ == '__main__':
+    """
+    Usage:
+
+    python bw.py < seq.txt
+    """
     with open(sys.argv[1]) as fp:
         for i, seq in enumerate(fp):
             seq = seq.strip()
@@ -173,5 +224,3 @@ if __name__ == '__main__':
 
             plt.savefig('plots/%d.svg' % i)
             plt.close()
-
-            break
