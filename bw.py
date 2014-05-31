@@ -140,7 +140,7 @@ with open('seq.txt') as fp:
     sequences = [line.strip() for line in fp.readlines()]
 
 for i, seq in enumerate(sequences[:1]):
-    print 'Calculating params for sequence %d...' % i + 1
+    print 'Calculating params for sequence %d...' % i
     n = len(seq)
 
     hmm_params = baum_welch(
@@ -165,5 +165,5 @@ for i, seq in enumerate(sequences[:1]):
     matplotlib.rc('xtick', labelsize=5)
     plt.xticks(range(0, n - 1), seq)
     plt.plot(np.asarray(prob)[0: n - 1, 1: 3])
-    plt.savefig('plots/foo.svg')
+    plt.savefig('plots/%d.svg' % i)
     plt.close()
