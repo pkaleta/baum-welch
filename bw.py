@@ -1,8 +1,9 @@
 from collections import namedtuple
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
 from mpmath import mpf
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import sys
 
 
 HMM_PARAM_NAMES = ['transition_prob', 'emission_prob', 'initial_prob']
@@ -133,7 +134,7 @@ def forward_backward(hmm_params, X, Y, sequence):
 
 
 if __name__ == '__main__':
-    with open('seq.txt') as fp:
+    with open(sys.argv[1]) as fp:
         sequences = [line.strip() for line in fp.readlines()]
 
     for i, seq in enumerate(sequences[:1]):
