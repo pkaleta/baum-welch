@@ -1,7 +1,7 @@
 import random
 import numpy as np
 
-N_SEQ = 100
+N_SEQ = 10
 
 
 START = 0
