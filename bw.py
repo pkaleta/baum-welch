@@ -46,7 +46,7 @@ def forward(hmm, X, Y, Yt):
         alpha[t, :] = (
             alpha[t - 1, :]
             .dot(hmm.transition_prob)
-            .dot(np.asmatrix(np.diag(hmm.emission_prob[:, Yt[t]])))
+            .dot(np.diag(hmm.emission_prob[:, Yt[t]]))
         )
 
     return alpha
@@ -62,7 +62,7 @@ def backward(hmm, X, Y, Yt):
     for t in xrange(n - 2, -1, -1):
         beta[t, :] = (
             hmm.transition_prob
-            .dot(np.asmatrix(np.diag(hmm.emission_prob[:, Yt[t + 1]])))
+            .dot(np.diag(hmm.emission_prob[:, Yt[t + 1]]))
             .dot(beta[t + 1, :].T)
         )
 
@@ -150,6 +150,7 @@ if __name__ == '__main__':
             _, _, prob = forward_backward(
                 hmm_params, HIDDEN_STATES, SYMBOLS, seq)
 
+            # Create files with calculated params
             for param in HMM_PARAM_NAMES:
                 param_values = getattr(hmm_params, param)
                 np.savetxt(
@@ -158,10 +159,21 @@ if __name__ == '__main__':
                     delimiter=','
                 )
 
+            # Create plots
             matplotlib.rc('xtick', labelsize=5)
+            plt.figure(1)
+
+            # First subplot
+            plt.subplot(211)
+            plt.xticks(range(0, n - 1), seq)
+            plt.plot(1.0 - abs(prob[1:, 1] - prob[: -1, 2]))
+
+            # Second subplot
+            plt.subplot(212)
             plt.xticks(range(0, n - 1), seq)
             plt.plot(prob[0: n - 1, 1: 3])
-            plt.savefig('plots/%d.jpg' % i)
+
+            plt.savefig('plots/%d.svg' % i)
             plt.close()
 
             break
