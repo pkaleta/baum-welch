@@ -5,10 +5,8 @@ import numpy as np
 from mpmath import mpf
 
 
-HMMParams = namedtuple(
-    'Params',
-    ['transition_prob', 'emission_prob', 'initial_prob']
-)
+HMM_PARAM_NAMES = ['transition_prob', 'emission_prob', 'initial_prob']
+HMMParams = namedtuple('Params', HMM_PARAM_NAMES)
 
 
 def forward(hmm, X, Y, Yt):
@@ -142,8 +140,8 @@ with open('seq.txt') as fp:
     sequences = [line.strip() for line in fp.readlines()]
 
 for i, seq in enumerate(sequences[:1]):
+    print 'Calculating params for sequence %d...' % i + 1
     n = len(seq)
-    print 'Sekwencja %d: %s (%d)' % (i, seq, n)
 
     hmm_params = baum_welch(
         HMMParams(
@@ -154,11 +152,18 @@ for i, seq in enumerate(sequences[:1]):
         HIDDEN_STATES,
         SYMBOLS,
         seq)
-    print hmm_params
     _, _, prob = forward_backward(hmm_params, HIDDEN_STATES, SYMBOLS, seq)
-    print prob
+
+    for param in HMM_PARAM_NAMES:
+        param_values = getattr(hmm_params, param)
+        np.savetxt(
+            'params/%s.%d.csv' % (param, i),
+            param_values,
+            delimiter=','
+        )
 
     matplotlib.rc('xtick', labelsize=5)
     plt.xticks(range(0, n - 1), seq)
     plt.plot(np.asarray(prob)[0: n - 1, 1: 3])
-    plt.show()
+    plt.savefig('plots/foo.svg')
+    plt.close()
